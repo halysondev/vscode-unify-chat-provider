@@ -2,7 +2,7 @@
   "name": "vscode-unify-chat-provider",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "6.8.4",
+  "version": "6.8.5",
   "categories": [
     "AI",
     "Chat"
@@ -803,6 +803,10 @@
                           "type": "number",
                           "description": "%configuration.endpoints.models.maxOutputTokens.description%",
                           "default": 8192
+                        },
+                        "reportedMaxOutputTokens": {
+                          "type": "number",
+                          "description": "%configuration.endpoints.models.reportedMaxOutputTokens.description%"
                         },
                         "tokenizer": {
                           "type": "string",

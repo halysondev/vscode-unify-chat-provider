@@ -5,10 +5,7 @@ import {
 } from 'vscode';
 import { createSimpleHttpLogger } from '../../logger';
 import type { ProviderHttpLogger, RequestLogger } from '../../logger';
-import {
-  ENCRYPTED_THINKING_PLACEHOLDER,
-  ThinkingBlockMetadata,
-} from '../types';
+import { ThinkingBlockMetadata } from '../types';
 import { FeatureId } from '../definitions';
 import { ApiProvider } from '../interface';
 import OpenAI from 'openai';
@@ -162,6 +159,64 @@ type OpenAIResponsesWebSocketRequestContext = OpenAIResponsesRequestContext & {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readResponseInputItemType(
+  item: ResponseInputItem,
+): string | undefined {
+  if (!isRecord(item)) {
+    return undefined;
+  }
+
+  const type = item.type;
+  return typeof type === 'string' ? type : undefined;
+}
+
+function readResponseInputItemCallId(
+  item: ResponseInputItem,
+): string | undefined {
+  if (!isRecord(item)) {
+    return undefined;
+  }
+
+  const callId = item.call_id;
+  return typeof callId === 'string' && callId.trim() ? callId : undefined;
+}
+
+function omitFunctionCallsWithoutFollowingOutput(
+  input: OpenAIResponsesRequestBody['input'],
+): OpenAIResponsesRequestBody['input'] {
+  if (!Array.isArray(input)) {
+    return input;
+  }
+
+  const outputCallIdsAfter = new Set<string>();
+  const retainedIndexes = new Set<number>();
+
+  for (let index = input.length - 1; index >= 0; index--) {
+    const item = input[index];
+    const type = readResponseInputItemType(item);
+    const callId = readResponseInputItemCallId(item);
+
+    if (type === 'function_call_output') {
+      if (callId) {
+        outputCallIdsAfter.add(callId);
+      }
+      retainedIndexes.add(index);
+      continue;
+    }
+
+    if (
+      type !== 'function_call' ||
+      (callId && outputCallIdsAfter.has(callId))
+    ) {
+      retainedIndexes.add(index);
+    }
+  }
+
+  return retainedIndexes.size === input.length
+    ? input
+    : input.filter((_, index) => retainedIndexes.has(index));
 }
 
 function isResponseImageGenerationCall(
@@ -938,6 +993,8 @@ export class OpenAIResponsesProvider implements ApiProvider {
       body.input = continuation.inputAfterPreviousResponse;
     }
 
+    body.input = omitFunctionCallsWithoutFollowingOutput(body.input);
+
     return body;
   }
 
@@ -959,6 +1016,8 @@ export class OpenAIResponsesProvider implements ApiProvider {
       body.previous_response_id = continuation.previousResponseId;
       body.input = continuation.inputAfterPreviousResponse;
     }
+
+    body.input = omitFunctionCallsWithoutFollowingOutput(body.input);
 
     return {
       type: 'response.create',
@@ -1788,21 +1847,23 @@ export class OpenAIResponsesProvider implements ApiProvider {
       return;
     }
 
+    if (type === 'encrypted') {
+      if (metadata) {
+        metadata.redactedData = text;
+      }
+      return;
+    }
+
     const prefix =
       state.lastType !== undefined && state.lastType !== type ? '\n' : '';
-    const output =
-      prefix + (type === 'encrypted' ? ENCRYPTED_THINKING_PLACEHOLDER : text);
+    const output = prefix + text;
 
     if (emitMode !== 'metadata-only') {
       yield new vscode.LanguageModelThinkingPart(output);
     }
 
     if (metadata) {
-      if (type === 'encrypted') {
-        metadata.redactedData = text;
-      } else {
-        metadata._completeThinking = (metadata._completeThinking || '') + text;
-      }
+      metadata._completeThinking = (metadata._completeThinking || '') + text;
     }
 
     state.lastType = type;

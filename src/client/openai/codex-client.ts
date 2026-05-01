@@ -32,6 +32,14 @@ const CODEX_COMMON_REQUEST_FIELDS_TO_DELETE = [
   'safety_identifier',
   'stream_options',
 ] as const;
+const CODEX_REASONING_SUMMARY_DEFAULTS = {
+  maxOutputTokens: undefined,
+  thinking: {
+    type: 'enabled',
+    effort: 'xhigh',
+    summary: 'auto',
+  },
+} satisfies Pick<ModelConfig, 'maxOutputTokens' | 'thinking'>;
 
 type CodexResponseTool = NonNullable<ResponseCreateParamsBase['tools']>[number];
 type CodexImageGenerationTool = Extract<
@@ -391,12 +399,42 @@ export class OpenAICodexProvider extends OpenAIResponsesProvider {
     _credential: AuthTokenInfo,
   ): Promise<ModelConfig[]> {
     return [
-      { id: 'gpt-5.5', maxInputTokens: 400000, maxOutputTokens: undefined },
-      { id: 'gpt-5.4', maxOutputTokens: undefined },
-      { id: 'gpt-5.2', maxOutputTokens: undefined },
-      { id: 'gpt-5.4-mini', maxOutputTokens: undefined },
-      { id: 'gpt-5.3-codex', maxOutputTokens: undefined },
-      { id: 'gpt-5.3-codex-spark', maxOutputTokens: undefined },
+      {
+        id: 'gpt-5.5',
+        maxInputTokens: 272000,
+        reportedMaxOutputTokens: 128000,
+        ...CODEX_REASONING_SUMMARY_DEFAULTS,
+      },
+      {
+        id: 'gpt-5.4',
+        maxInputTokens: 922000,
+        reportedMaxOutputTokens: 128000,
+        ...CODEX_REASONING_SUMMARY_DEFAULTS,
+      },
+      {
+        id: 'gpt-5.2',
+        maxInputTokens: 272000,
+        reportedMaxOutputTokens: 128000,
+        ...CODEX_REASONING_SUMMARY_DEFAULTS,
+      },
+      {
+        id: 'gpt-5.4-mini',
+        maxInputTokens: 272000,
+        reportedMaxOutputTokens: 128000,
+        ...CODEX_REASONING_SUMMARY_DEFAULTS,
+      },
+      {
+        id: 'gpt-5.3-codex',
+        maxInputTokens: 272000,
+        reportedMaxOutputTokens: 128000,
+        ...CODEX_REASONING_SUMMARY_DEFAULTS,
+      },
+      {
+        id: 'gpt-5.3-codex-spark',
+        maxInputTokens: 100000,
+        reportedMaxOutputTokens: 32000,
+        ...CODEX_REASONING_SUMMARY_DEFAULTS,
+      },
     ];
   }
 }
