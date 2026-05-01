@@ -83,9 +83,9 @@ export const DEFAULT_CHAT_RETRY_CONFIG = {
  */
 export const DEFAULT_NORMAL_TIMEOUT_CONFIG = {
   /** Connection timeout in milliseconds */
-  connection: 10_000,
+  connection: 20_000,
   /** Response/idle timeout in milliseconds */
-  response: 10_000,
+  response: 20_000,
 } as const;
 
 export const DEFAULT_CHAT_TIMEOUT_CONFIG = {
@@ -780,7 +780,10 @@ interface UndiciProxyAgentLikeOptions {
 }
 
 const defaultDispatcherCache = new Map<string, Dispatcher>();
-const proxiedDispatcherCache = new WeakMap<Dispatcher, Map<string, Dispatcher>>();
+const proxiedDispatcherCache = new WeakMap<
+  Dispatcher,
+  Map<string, Dispatcher>
+>();
 
 function readConfiguredHttpProxySupport(value: unknown): HttpProxySupportMode {
   switch (value) {
@@ -808,9 +811,7 @@ function normalizeNoProxyList(value: readonly string[] | undefined): string[] {
     return [];
   }
 
-  return value
-    .map((entry) => entry.trim())
-    .filter((entry) => entry !== '');
+  return value.map((entry) => entry.trim()).filter((entry) => entry !== '');
 }
 
 function getConfiguredHttpProxySettings(): ResolvedHttpProxySettings {
@@ -831,10 +832,7 @@ function getConfiguredHttpProxySettings(): ResolvedHttpProxySettings {
   };
 }
 
-function getObjectSymbolValue(
-  target: object,
-  description: string,
-): unknown {
+function getObjectSymbolValue(target: object, description: string): unknown {
   const symbol = Object.getOwnPropertySymbols(target).find(
     (candidate) => candidate.description === description,
   );
@@ -854,9 +852,10 @@ function readTlsCa(value: unknown): TlsCa | undefined {
   return isTlsCa(value) ? value : undefined;
 }
 
-function readDispatcherConnectOptions(
-  value: unknown,
-): { requestCA?: TlsCa; socketPath?: string } {
+function readDispatcherConnectOptions(value: unknown): {
+  requestCA?: TlsCa;
+  socketPath?: string;
+} {
   if (!isRecord(value)) {
     return {};
   }
@@ -976,7 +975,9 @@ function createEnvProxyDispatcher(
   settings: ResolvedHttpProxySettings,
 ): Dispatcher {
   const base =
-    originalDispatcher === undefined ? {} : getDispatcherOptions(originalDispatcher);
+    originalDispatcher === undefined
+      ? {}
+      : getDispatcherOptions(originalDispatcher);
 
   if (originalDispatcher !== undefined && base.socketPath !== undefined) {
     return originalDispatcher;
@@ -1228,17 +1229,11 @@ function fetchWithUndici(
   input: RequestInfo | URL,
   init?: RequestInitWithDispatcher,
 ): Promise<Response> {
-  if (
-    typeof Request !== 'undefined' &&
-    input instanceof Request
-  ) {
+  if (typeof Request !== 'undefined' && input instanceof Request) {
     throw new TypeError('fetchWithRetry does not support Request input');
   }
 
-  if (
-    typeof input !== 'string' &&
-    !(input instanceof URL)
-  ) {
+  if (typeof input !== 'string' && !(input instanceof URL)) {
     throw new TypeError('fetchWithRetry only supports string or URL input');
   }
 
@@ -1249,9 +1244,7 @@ function fetchWithUndici(
   return undiciFetch(
     input,
     toUndiciRequestInit(getUndiciInitWithProxySupport(init)),
-  ).then(
-    adaptUndiciResponse,
-  );
+  ).then(adaptUndiciResponse);
 }
 
 export async function fetchWithRetryUsingFetch(
@@ -2067,9 +2060,8 @@ export function normalizeOutputImageMimeType(
     return fallbackMimeType;
   }
 
-  const normalizedSupportedMimeType = normalizeImageMimeType(
-    normalizedMimeType,
-  );
+  const normalizedSupportedMimeType =
+    normalizeImageMimeType(normalizedMimeType);
   if (normalizedSupportedMimeType) {
     return normalizedSupportedMimeType;
   }
